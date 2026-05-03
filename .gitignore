@@ -1,0 +1,16 @@
+# Environment / secrets — never commit real API keys
+.env
+.env.*
+secrets.js
+config.local.js
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log

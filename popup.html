@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none';">
+  <title>AI Summarizer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1 id="page-title">AI Summarizer</h1>
+    <button id="theme-toggle" aria-label="Toggle dark/light mode">🌙</button>
+  </header>
+
+  <main>
+    <div class="controls">
+      <label class="toggle-label" title="Switch to 3-bullet summary">
+        <input type="checkbox" id="bullet-mode" aria-label="3-bullet summary mode" />
+        3-bullet mode
+      </label>
+    </div>
+
+    <button id="summarize-btn">Summarize Page</button>
+
+    <div id="loading" class="spinner-wrap" hidden aria-live="polite" aria-label="Loading summary">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Summarizing…</span>
+    </div>
+
+    <div id="summary-wrap" hidden>
+      <div id="summary" role="region" aria-label="Page summary" tabindex="0"></div>
+      <div class="summary-footer">
+        <span id="cached-badge" hidden>⚡ Cached</span>
+        <span id="word-count" aria-live="polite"></span>
+        <button id="copy-btn" aria-label="Copy summary to clipboard" hidden>📋 Copy</button>
+        <button id="highlight-btn" aria-label="Highlight key terms on page" hidden>🔆 Highlight</button>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button id="clear-btn" aria-label="Clear summary">Clear</button>
+      <button id="reset-btn" class="reset-btn" aria-label="Reset all cached summaries and settings">🗑 Reset All</button>
+    </div>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
