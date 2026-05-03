@@ -38,7 +38,7 @@ function checkRateLimit() {
 // ─── HTTP helpers — hardcoded URLs, no variable reaches fetch() ──────────────
 async function fetchGemini(prompt) {
   // URL is a compile-time constant — not derived from any external input
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   for (let attempt = 0; attempt <= 3; attempt++) {
     const res = await fetch(GEMINI_URL, {
@@ -52,9 +52,10 @@ async function fetchGemini(prompt) {
     const retryable = res.status === 429 || res.status === 503;
     if (!retryable || attempt === 3) {
       throw new Error(
-        res.status === 400 ? "Bad request (400). Your API key may be invalid or the prompt was rejected. Check your GEMINI_API_KEY in background.js." :
+        res.status === 400 ? "Bad request (400). Your API key may be invalid or the prompt was rejected." :
         res.status === 401 ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js." :
         res.status === 403 ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey" :
+        res.status === 404 ? "Model not found (404). The Gemini model endpoint may have changed — check background.js." :
         res.status === 429 ? "AI API rate limit hit. Please wait and try again." :
         res.status === 503 ? "AI service temporarily unavailable. Try again shortly." :
         `API error ${res.status}.`
