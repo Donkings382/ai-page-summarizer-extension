@@ -303,17 +303,6 @@ Before messaging a tab, `background.js` checks that the URL does not start with 
 
 ---
 
-## Demo Recording Guide
+## 🎥 Demo Video
 
-Record with OBS Studio, Loom, or QuickTime. Show:
-
-1. `chrome://extensions` → Load unpacked → extension appears with icon
-2. Navigate to a real article page (e.g. a Wikipedia article or news story)
-3. Click the extension icon → popup opens
-4. Click **Summarize Page** → spinner appears → structured summary renders
-5. Close and reopen the popup on the same page → ⚡ Cached badge appears instantly
-6. Toggle dark/light mode
-7. Click **📋 Copy** → paste into a text editor to verify content
-8. Check the **3-bullet mode** checkbox → summarize again → compact 3-bullet output
-9. Click **🔦 Highlight** → key terms highlighted on the page
-10. Click **🗑 Reset All** (twice) → cache and settings cleared
+Watch the demo here: [Demo Video Link](https://your-video-link)
