@@ -1,6 +1,6 @@
 # AI Page Summarizer — Chrome Extension
 
-A Manifest V3 Chrome Extension that summarizes any webpage using the **Gemini 1.5 Flash** API.  
+A Manifest V3 Chrome Extension that summarizes any webpage using the **Gemini 2.0 Flash** API.  
 Displays a structured summary — overview, bullet-point key insights, and estimated reading time — directly in the popup.
 
 ---
@@ -144,7 +144,7 @@ User clicks "Summarize Page"
         │                 │    Readability → <article> → <main> → div heuristic
         │                 │    Returns { content: "plain text..." }
         │                 │
-        │                 └─ fetchGemini(prompt)  ──► Gemini 1.5 Flash API
+        │                 └─ fetchGemini(prompt)  ──► Gemini 2.0 Flash API
         │                           │
         │                           └── Returns structured summary text
         │
@@ -179,31 +179,9 @@ User clicks "Summarize Page"
 
 ### Model
 
-**Gemini 1.5 Flash** — chosen for its speed, low latency, and free tier availability.  
+**Gemini 2.0 Flash** — chosen for its speed, low latency, and free tier availability.  
 Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
 
-### Prompt engineering
-
-The prompt enforces a strict output format to make parsing deterministic:
-
-```
-OVERVIEW
-[2-3 sentence summary]
-
-KEY INSIGHTS
-• [insight 1]
-• [insight 2]
-• [insight 3]
-• [insight 4]
-• [insight 5]
-
-READING TIME
-[Estimated reading time: N minutes]
-```
-
-The parser in `renderSections()` splits on these exact section headings and builds DOM nodes — no regex on AI output, no `innerHTML`.
-
-**3-bullet mode** uses a separate prompt that requests exactly 3 bullet points with no extra text, and a separate cache key so both modes can be cached independently.
 
 ### Content sent to the API
 
