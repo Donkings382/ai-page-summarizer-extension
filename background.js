@@ -1,24 +1,22 @@
 // ─── Configuration ───────────────────────────────────────────────────────────
-const GEMINI_API_KEY = "AIzaSyAhvoSliBgVNGtfU15a8hn7hyQvdQDTGpQ";
+const GEMINI_API_KEY = "<YOUR_GEMINI_API_KEY>";
 
 // Option B (production proxy) — set your endpoint and uncomment
 // const PROXY_URL = "https://your-proxy.com/summarize";
-
-// ─── URL Allowlist (for proxy option B — add host here before enabling) ──────
-// const ALLOWED_HOSTS = new Set(["your-proxy.com"]);
 
 // ─── API key pre-flight check ─────────────────────────────────────────────────
 function assertKeyConfigured() {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === "<YOUR_GEMINI_API_KEY>") {
     throw new Error(
       "No API key set. Open background.js and replace <YOUR_GEMINI_API_KEY> " +
-        "with your key from https://aistudio.google.com/app/apikey",
+      "with your key from https://aistudio.google.com/app/apikey"
     );
   }
 }
 
 // ─── Rate Limiter (token bucket) ─────────────────────────────────────────────
-const RATE_LIMIT = { MAX_REQUESTS: 5, WINDOW_MS: 60_000 };
+// 10 requests per 60s — generous enough for testing without hammering the API
+const RATE_LIMIT = { MAX_REQUESTS: 10, WINDOW_MS: 60_000 };
 const rateBucket = { tokens: RATE_LIMIT.MAX_REQUESTS, lastRefill: Date.now() };
 
 function checkRateLimit() {
@@ -37,14 +35,13 @@ function checkRateLimit() {
 
 // ─── HTTP helpers — hardcoded URLs, no variable reaches fetch() ──────────────
 async function fetchGemini(prompt) {
-  // URL is a compile-time constant — not derived from any external input
   const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   for (let attempt = 0; attempt <= 3; attempt++) {
     const res = await fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
 
     if (res.ok) return res;
@@ -52,28 +49,21 @@ async function fetchGemini(prompt) {
     const retryable = res.status === 429 || res.status === 503;
     if (!retryable || attempt === 3) {
       throw new Error(
-        res.status === 400
-          ? "Bad request (400). Your API key may be invalid or the prompt was rejected."
-          : res.status === 401
-            ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js."
-            : res.status === 403
-              ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey"
-              : res.status === 404
-                ? "Model not found (404). The Gemini model endpoint may have changed — check background.js."
-                : res.status === 429
-                  ? "AI API rate limit hit. Please wait and try again."
-                  : res.status === 503
-                    ? "AI service temporarily unavailable. Try again shortly."
-                    : `API error ${res.status}.`,
+        res.status === 400 ? "Bad request (400). Your API key may be invalid or the prompt was rejected." :
+        res.status === 401 ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js." :
+        res.status === 403 ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey" :
+        res.status === 404 ? "Model not found (404). The Gemini model endpoint may have changed — check background.js." :
+        res.status === 429 ? "AI API rate limit hit. Please wait and try again." :
+        res.status === 503 ? "AI service temporarily unavailable. Try again shortly." :
+        `API error ${res.status}.`
       );
     }
-    await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+    await new Promise(r => setTimeout(r, 500 * 2 ** attempt));
   }
 }
 
 /* ── Option B: proxy fetch (uncomment when using a proxy backend) ────────────
 async function fetchProxy(text, bulletMode) {
-  // URL is a compile-time constant — not derived from any external input
   for (let attempt = 0; attempt <= 3; attempt++) {
     const res = await fetch(PROXY_URL, {
       method: "POST",
@@ -138,7 +128,7 @@ async function callAI(text, bulletMode) {
 function validateSummarizeMsg(msg) {
   if (!msg || typeof msg !== "object") throw new Error("Invalid message.");
   if (msg.action !== "summarize") throw new Error("Unknown action.");
-  return { bulletMode: msg.bulletMode === true }; // coerce — never trust caller type
+  return { bulletMode: msg.bulletMode === true };
 }
 
 // ─── Message Listener ────────────────────────────────────────────────────────
@@ -147,46 +137,41 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   try {
     validated = validateSummarizeMsg(msg);
   } catch {
-    return false; // not our message — release listener
+    return false;
   }
 
   (async () => {
     try {
-      assertKeyConfigured(); // fail fast if placeholder key is still set
+      assertKeyConfigured();
       checkRateLimit();
 
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) throw new Error("No active tab found.");
 
-      // Validate the tab URL is reachable before messaging
-      if (
-        !tab.url ||
-        tab.url.startsWith("chrome://") ||
-        tab.url.startsWith("chrome-extension://")
-      ) {
+      if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
         throw new Error("Cannot summarize browser internal pages.");
       }
 
-      const contentResponse = await chrome.tabs
-        .sendMessage(tab.id, { action: "extractContent" })
-        .catch(() => {
-          throw new Error(
-            "Could not read page content. Try reloading the tab.",
-          );
-        });
+      // Retry content extraction once — content script may not be ready on first load
+      let contentResponse;
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        try {
+          contentResponse = await chrome.tabs.sendMessage(tab.id, { action: "extractContent" });
+          break;
+        } catch {
+          if (attempt === 1) throw new Error("Could not read page content. Try reloading the tab.");
+          await new Promise(r => setTimeout(r, 1500)); // wait 1.5s then retry once
+        }
+      }
 
       const pageText = contentResponse?.content?.trim();
       if (typeof pageText !== "string" || pageText.length < 50) {
-        throw new Error(
-          "Not enough readable content on this page to summarize.",
-        );
+        throw new Error("Not enough readable content on this page to summarize.");
       }
 
       const summary = await callAI(pageText, validated.bulletMode);
       sendResponse({ summary });
+
     } catch (err) {
       sendResponse({ error: err.message });
     }
