@@ -306,4 +306,4 @@ Before messaging a tab, `background.js` checks that the URL does not start with 
 
 ## 🎥 Demo Video
 
-Watch the demo here: [Demo Video Link](https://your-video-link)
+Watch the demo here: [Demo Video Link](https://www.loom.com/share/57f9f75e8d5c4cbfaa58dcc0fc525b0f)
