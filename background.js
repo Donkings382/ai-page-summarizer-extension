@@ -7,6 +7,16 @@ const GEMINI_API_KEY = "<YOUR_GEMINI_API_KEY>";
 // ─── URL Allowlist (for proxy option B — add host here before enabling) ──────
 // const ALLOWED_HOSTS = new Set(["your-proxy.com"]);
 
+// ─── API key pre-flight check ─────────────────────────────────────────────────
+function assertKeyConfigured() {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === "<YOUR_GEMINI_API_KEY>") {
+    throw new Error(
+      "No API key set. Open background.js and replace <YOUR_GEMINI_API_KEY> " +
+      "with your key from https://aistudio.google.com/app/apikey"
+    );
+  }
+}
+
 // ─── Rate Limiter (token bucket) ─────────────────────────────────────────────
 const RATE_LIMIT = { MAX_REQUESTS: 5, WINDOW_MS: 60_000 };
 const rateBucket = { tokens: RATE_LIMIT.MAX_REQUESTS, lastRefill: Date.now() };
@@ -42,9 +52,11 @@ async function fetchGemini(prompt) {
     const retryable = res.status === 429 || res.status === 503;
     if (!retryable || attempt === 3) {
       throw new Error(
+        res.status === 400 ? "Bad request (400). Your API key may be invalid or the prompt was rejected. Check your GEMINI_API_KEY in background.js." :
+        res.status === 401 ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js." :
+        res.status === 403 ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey" :
         res.status === 429 ? "AI API rate limit hit. Please wait and try again." :
         res.status === 503 ? "AI service temporarily unavailable. Try again shortly." :
-        res.status === 401 ? "Invalid API key. Check your GEMINI_API_KEY in background.js." :
         `API error ${res.status}.`
       );
     }
@@ -133,6 +145,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   (async () => {
     try {
+      assertKeyConfigured(); // fail fast if placeholder key is still set
       checkRateLimit();
 
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
