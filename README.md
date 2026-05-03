@@ -154,24 +154,24 @@ User clicks "Summarize Page"
 
 ### Responsibilities per file
 
-| File | Responsibility |
-|------|---------------|
-| `manifest.json` | Declares permissions, registers service worker, popup, content scripts |
+| File            | Responsibility                                                                 |
+| --------------- | ------------------------------------------------------------------------------ |
+| `manifest.json` | Declares permissions, registers service worker, popup, content scripts         |
 | `background.js` | Owns all network I/O — rate limiter, retry logic, prompt building, Gemini call |
-| `content.js` | Runs in page context — extracts text, handles keyword highlighting |
-| `popup.js` | UI state machine — loading, cache, render, settings, theme, copy, highlight |
-| `popup.html` | Semantic HTML structure with ARIA attributes |
-| `popup.css` | All visual styling — no logic |
+| `content.js`    | Runs in page context — extracts text, handles keyword highlighting             |
+| `popup.js`      | UI state machine — loading, cache, render, settings, theme, copy, highlight    |
+| `popup.html`    | Semantic HTML structure with ARIA attributes                                   |
+| `popup.css`     | All visual styling — no logic                                                  |
 
 ### Chrome API usage
 
-| API | Used for |
-|-----|---------|
-| `chrome.runtime.sendMessage` | popup → background communication |
-| `chrome.tabs.sendMessage` | background → content script communication |
-| `chrome.tabs.query` | Get active tab ID and URL |
-| `chrome.storage.local` | Cache summaries per URL, persist theme and bullet-mode settings |
-| `chrome.scripting` | Declared in permissions for dynamic script injection capability |
+| API                          | Used for                                                        |
+| ---------------------------- | --------------------------------------------------------------- |
+| `chrome.runtime.sendMessage` | popup → background communication                                |
+| `chrome.tabs.sendMessage`    | background → content script communication                       |
+| `chrome.tabs.query`          | Get active tab ID and URL                                       |
+| `chrome.storage.local`       | Cache summaries per URL, persist theme and bullet-mode settings |
+| `chrome.scripting`           | Declared in permissions for dynamic script injection capability |
 
 ---
 
@@ -208,7 +208,7 @@ The parser in `renderSections()` splits on these exact section headings and buil
 ### Content sent to the API
 
 - Page text is extracted by `content.js`, stripped of all clutter tags, and normalized
-- Capped at **8000 characters** before being included in the prompt — fits comfortably within Gemini Flash's context window while keeping latency low
+- Capped at **4000 characters** before being included in the prompt — covers ~600 words, enough for accurate news article summaries while keeping latency low
 - Only plain text is sent — no HTML, no scripts, no user data
 
 ### Reliability
@@ -246,6 +246,7 @@ This blocks inline scripts, external stylesheets, and any network requests from 
 ### 5. Message validation
 
 Every incoming message is validated before processing:
+
 - `background.js` — `validateSummarizeMsg()` checks type, action string, and coerces `bulletMode` to boolean
 - `content.js` — `validateMsg()` checks against a `VALID_ACTIONS` allowlist; `sanitizeKeywords()` enforces string type, max length per keyword (50 chars), and a hard cap of 20 keywords
 

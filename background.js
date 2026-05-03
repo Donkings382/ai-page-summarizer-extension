@@ -1,5 +1,5 @@
 // ─── Configuration ───────────────────────────────────────────────────────────
-const GEMINI_API_KEY = "<YOUR_GEMINI_API_KEY>";
+const GEMINI_API_KEY = "AIzaSyAhvoSliBgVNGtfU15a8hn7hyQvdQDTGpQ";
 
 // Option B (production proxy) — set your endpoint and uncomment
 // const PROXY_URL = "https://your-proxy.com/summarize";
@@ -12,7 +12,7 @@ function assertKeyConfigured() {
   if (!GEMINI_API_KEY || GEMINI_API_KEY === "<YOUR_GEMINI_API_KEY>") {
     throw new Error(
       "No API key set. Open background.js and replace <YOUR_GEMINI_API_KEY> " +
-      "with your key from https://aistudio.google.com/app/apikey"
+        "with your key from https://aistudio.google.com/app/apikey",
     );
   }
 }
@@ -44,7 +44,7 @@ async function fetchGemini(prompt) {
     const res = await fetch(GEMINI_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
 
     if (res.ok) return res;
@@ -52,16 +52,22 @@ async function fetchGemini(prompt) {
     const retryable = res.status === 429 || res.status === 503;
     if (!retryable || attempt === 3) {
       throw new Error(
-        res.status === 400 ? "Bad request (400). Your API key may be invalid or the prompt was rejected." :
-        res.status === 401 ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js." :
-        res.status === 403 ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey" :
-        res.status === 404 ? "Model not found (404). The Gemini model endpoint may have changed — check background.js." :
-        res.status === 429 ? "AI API rate limit hit. Please wait and try again." :
-        res.status === 503 ? "AI service temporarily unavailable. Try again shortly." :
-        `API error ${res.status}.`
+        res.status === 400
+          ? "Bad request (400). Your API key may be invalid or the prompt was rejected."
+          : res.status === 401
+            ? "Invalid API key (401). Check your GEMINI_API_KEY in background.js."
+            : res.status === 403
+              ? "API key does not have permission (403). Check your key at https://aistudio.google.com/app/apikey"
+              : res.status === 404
+                ? "Model not found (404). The Gemini model endpoint may have changed — check background.js."
+                : res.status === 429
+                  ? "AI API rate limit hit. Please wait and try again."
+                  : res.status === 503
+                    ? "AI service temporarily unavailable. Try again shortly."
+                    : `API error ${res.status}.`,
       );
     }
-    await new Promise(r => setTimeout(r, 500 * 2 ** attempt));
+    await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
   }
 }
 
@@ -84,7 +90,7 @@ async function fetchProxy(text, bulletMode) {
 
 // ─── Prompts ──────────────────────────────────────────────────────────────────
 function buildPrompt(text, bulletMode) {
-  const content = `\n\nContent:\n${text.slice(0, 8000)}`;
+  const content = `\n\nContent:\n${text.slice(0, 4000)}`;
   if (bulletMode) {
     return `Summarize the following webpage content in exactly 3 concise bullet points.
 Respond ONLY in this exact format — no intro, no extra text:
@@ -149,25 +155,38 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       assertKeyConfigured(); // fail fast if placeholder key is still set
       checkRateLimit();
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
       if (!tab?.id) throw new Error("No active tab found.");
 
       // Validate the tab URL is reachable before messaging
-      if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://")) {
+      if (
+        !tab.url ||
+        tab.url.startsWith("chrome://") ||
+        tab.url.startsWith("chrome-extension://")
+      ) {
         throw new Error("Cannot summarize browser internal pages.");
       }
 
-      const contentResponse = await chrome.tabs.sendMessage(tab.id, { action: "extractContent" })
-        .catch(() => { throw new Error("Could not read page content. Try reloading the tab."); });
+      const contentResponse = await chrome.tabs
+        .sendMessage(tab.id, { action: "extractContent" })
+        .catch(() => {
+          throw new Error(
+            "Could not read page content. Try reloading the tab.",
+          );
+        });
 
       const pageText = contentResponse?.content?.trim();
       if (typeof pageText !== "string" || pageText.length < 50) {
-        throw new Error("Not enough readable content on this page to summarize.");
+        throw new Error(
+          "Not enough readable content on this page to summarize.",
+        );
       }
 
       const summary = await callAI(pageText, validated.bulletMode);
       sendResponse({ summary });
-
     } catch (err) {
       sendResponse({ error: err.message });
     }
